@@ -2,11 +2,9 @@
 
 ## AI-Powered Screenshot Search
 
+![ScreenMind Preview](public/images/screenmind-preview.png)
+
 ScreenMind is a smart screenshot management application that helps users find information hidden inside their screenshots.
-
-Instead of manually opening screenshots one by one, ScreenMind uses OCR and AI-powered semantic search to help users quickly find relevant screenshots.
-
----
 
 ## ✨ Features
 
