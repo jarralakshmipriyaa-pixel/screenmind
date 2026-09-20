@@ -534,6 +534,8 @@ function App() {
                 category:
                   screenshot.category ||
                   'Other',
+                isFavorite:
+                  Boolean(screenshot.isFavorite),
               }
             }
           )
@@ -645,6 +647,7 @@ function App() {
             extractedText,
             embedding: [],
             category: 'Other',
+            isFavorite: false,
           })
 
         const imageUrl =
@@ -660,6 +663,7 @@ function App() {
               text: extractedText,
               embedding: [],
               category: 'Other',
+              isFavorite: false,
             },
           ]
         )
@@ -1025,6 +1029,49 @@ function App() {
   }
 
   /* =========================================
+     FAVORITE
+     ========================================= */
+
+  async function handleFavoriteToggle(image) {
+    const nextFavoriteState = !Boolean(image.isFavorite)
+
+    try {
+      await updateScreenshot(
+        image.id,
+        { isFavorite: nextFavoriteState }
+      )
+
+      setImages(
+        (previousImages) =>
+          previousImages.map(
+            (currentImage) =>
+              currentImage.id === image.id
+                ? {
+                    ...currentImage,
+                    isFavorite: nextFavoriteState,
+                  }
+                : currentImage
+          )
+      )
+
+      setSelectedImage(
+        (currentImage) =>
+          currentImage?.id === image.id
+            ? {
+                ...currentImage,
+                isFavorite: nextFavoriteState,
+              }
+            : currentImage
+      )
+    } catch (error) {
+      console.error(
+        'Failed to update favorite:',
+        error
+      )
+    }
+  }
+
+  /* =========================================
      DELETE
      ========================================= */
 
@@ -1140,6 +1187,10 @@ function App() {
       searchResults ?? images
     ).filter((image) => {
 
+      if (selectedCategory === 'Favorites') {
+        return Boolean(image.isFavorite)
+      }
+
       return (
         selectedCategory ===
           'All' ||
@@ -1194,16 +1245,18 @@ function App() {
           }
         >
 
-          {categories.map(
-            (category) => (
+          <option value="All">All</option>
+          <option value="Favorites">Favorites</option>
+          {categories
+            .filter((category) => category !== 'All')
+            .map((category) => (
               <option
                 key={category}
                 value={category}
               >
                 {category}
               </option>
-            )
-          )}
+            ))}
 
         </select>
 
@@ -1390,6 +1443,33 @@ function App() {
 
                   </div>
 
+                  {/* FAVORITE */}
+
+                  <div className="favorite-section">
+                    <button
+                      type="button"
+                      className={`favorite-button ${
+                        image.isFavorite ? 'active' : ''
+                      }`}
+                      onClick={() =>
+                        handleFavoriteToggle(image)
+                      }
+                      aria-pressed={Boolean(image.isFavorite)}
+                      title={
+                        image.isFavorite
+                          ? 'Remove from favorites'
+                          : 'Add to favorites'
+                      }
+                    >
+                      <span aria-hidden="true">
+                        {image.isFavorite ? '★' : '☆'}
+                      </span>
+                      {image.isFavorite
+                        ? 'Favorited'
+                        : 'Add to Favorites'}
+                    </button>
+                  </div>
+
                   {/* CATEGORY */}
 
                   <div className="category-section">
@@ -1489,6 +1569,15 @@ function App() {
               <img src={selectedImage.url} alt="Full screenshot preview" style={{ display: 'block', maxWidth: '100%', maxHeight: 'calc(100vh - 180px)', width: 'auto', height: 'auto', objectFit: 'contain' }} />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', padding: '12px 16px', borderTop: '1px solid #e5e7eb', background: '#ffffff' }}>
+              <button
+                className={`reprocess-button ${
+                  selectedImage.isFavorite ? 'favorite-modal-active' : ''
+                }`}
+                onClick={() => handleFavoriteToggle(selectedImage)}
+                style={{ flex: '0 0 auto' }}
+              >
+                {selectedImage.isFavorite ? '★ Favorited' : '☆ Favorite'}
+              </button>
               <button className="reprocess-button" onClick={() => handleDownload(selectedImage)} style={{ flex: '0 0 auto' }}>Download</button>
               <button className="reprocess-button" onClick={() => handleShare(selectedImage)} style={{ flex: '0 0 auto' }}>Share</button>
             </div>
