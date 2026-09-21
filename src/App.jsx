@@ -536,6 +536,10 @@ function App() {
                   'Other',
                 isFavorite:
                   Boolean(screenshot.isFavorite),
+                tags:
+                  Array.isArray(screenshot.tags)
+                    ? screenshot.tags
+                    : [],
               }
             }
           )
@@ -648,6 +652,7 @@ function App() {
             embedding: [],
             category: 'Other',
             isFavorite: false,
+            tags: [],
           })
 
         const imageUrl =
@@ -664,6 +669,7 @@ function App() {
               embedding: [],
               category: 'Other',
               isFavorite: false,
+              tags: [],
             },
           ]
         )
@@ -838,9 +844,14 @@ function App() {
         images
           .map((image) => {
 
+            const searchableText = [
+              image.text || '',
+              ...(image.tags || []),
+            ].join(' ')
+
             const keywordScore =
               calculateKeywordScore(
-                image.text,
+                searchableText,
                 searchText
               )
 
@@ -904,9 +915,14 @@ function App() {
         const hybridResults =
           images.map((image) => {
 
+            const searchableText = [
+              image.text || '',
+              ...(image.tags || []),
+            ].join(' ')
+
             const keywordScore =
               calculateKeywordScore(
-                image.text,
+                searchableText,
                 searchText
               )
 
@@ -1066,6 +1082,61 @@ function App() {
     } catch (error) {
       console.error(
         'Failed to update favorite:',
+        error
+      )
+    }
+  }
+
+  /* =========================================
+     TAGS
+     ========================================= */
+
+  function normalizeTags(tags) {
+    return Array.from(
+      new Set(
+        tags
+          .map((tag) => tag.trim())
+          .filter(Boolean)
+      )
+    )
+  }
+
+  async function handleTagsChange(image, value) {
+    const tags = normalizeTags(
+      value.split(',')
+    )
+
+    try {
+      await updateScreenshot(
+        image.id,
+        { tags }
+      )
+
+      setImages(
+        (previousImages) =>
+          previousImages.map(
+            (currentImage) =>
+              currentImage.id === image.id
+                ? {
+                    ...currentImage,
+                    tags,
+                  }
+                : currentImage
+          )
+      )
+
+      setSelectedImage(
+        (currentImage) =>
+          currentImage?.id === image.id
+            ? {
+                ...currentImage,
+                tags,
+              }
+            : currentImage
+      )
+    } catch (error) {
+      console.error(
+        'Failed to update tags:',
         error
       )
     }
@@ -1517,6 +1588,46 @@ function App() {
 
                   </div>
 
+                  {/* TAGS */}
+
+                  <div className="category-section">
+                    <label>
+                      Tags
+                    </label>
+
+                    <input
+                      type="text"
+                      defaultValue={
+                        (image.tags || []).join(', ')
+                      }
+                      placeholder="internship, college, certificate"
+                      onBlur={(event) =>
+                        handleTagsChange(
+                          image,
+                          event.target.value
+                        )
+                      }
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.currentTarget.blur()
+                        }
+                      }}
+                    />
+
+                    {image.tags?.length > 0 && (
+                      <div className="tag-list">
+                        {image.tags.map((tag) => (
+                          <span
+                            className="tag-chip"
+                            key={tag}
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   {/* RESULT ACTIONS */}
 
                   <div className="card-actions">
@@ -1565,8 +1676,18 @@ function App() {
               <strong style={{ fontSize: '14px', color: '#111827' }}>Screenshot Preview</strong>
               <button onClick={() => setSelectedImage(null)} aria-label="Close preview" style={{ width: '34px', height: '34px', border: '1px solid #d1d5db', borderRadius: '7px', background: '#ffffff', color: '#374151', fontSize: '22px', lineHeight: 1, cursor: 'pointer' }}>×</button>
             </div>
-            <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: '#f3f4f6', overflow: 'auto' }}>
-              <img src={selectedImage.url} alt="Full screenshot preview" style={{ display: 'block', maxWidth: '100%', maxHeight: 'calc(100vh - 180px)', width: 'auto', height: 'auto', objectFit: 'contain' }} />
+            <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', background: '#f3f4f6', overflow: 'auto' }}>
+              <img src={selectedImage.url} alt="Full screenshot preview" style={{ display: 'block', maxWidth: '100%', maxHeight: 'calc(100vh - 220px)', width: 'auto', height: 'auto', objectFit: 'contain' }} />
+
+              {selectedImage.tags?.length > 0 && (
+                <div className="tag-list" style={{ marginTop: '14px' }}>
+                  {selectedImage.tags.map((tag) => (
+                    <span className="tag-chip" key={tag}>
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', padding: '12px 16px', borderTop: '1px solid #e5e7eb', background: '#ffffff' }}>
               <button
